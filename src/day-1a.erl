@@ -4,49 +4,70 @@
     main/1
 ]).
 
-%% --------------------------- %%
-%% List comprehension approach %%
-%% --------------------------- %%
+%% ---------------------- %%
+%% Via list comprehension %%
+%% ---------------------- %%
 
-find_2020_listcomp(Numbers)
+find_2020_listcomp_2(Ns)
 ->
-    [A, B] = [N || {N, X} <- [{N1, [N1 + N2 || N2 <- Numbers, N1 + N2 == 2020]} || N1 <- Numbers], length(X) > 0],
+    [{A, B} | _] = [{A, B} || {A, B, P} <- [{A, B, A + B} || A <- Ns, B <- Ns], P == 2020],
     {A, B}
 .
 
-%% ------------------ %%
-%% Recursive approach %%
-%% ------------------ %%
+find_2020_listcomp_3(Ns)
+->
+    [{A, B, C} | _] = [{A, B, C} || {A, B, C, P} <- [{A, B, C, A + B + C} || A <- Ns, B <- Ns, C <- Ns], P == 2020],
+    {A, B, C}
+.
 
-find_2020_recursive(Numbers)
+%% ------------- %%
+%% Via recursion %%
+%% ------------- %%
+
+find_2020_recursive_n(InputSet, TargetSum, AnswerLength)
 ->
-    find_2020_recursive(Numbers, Numbers)
+    find_2020_recursive_n(InputSet, TargetSum, AnswerLength, [])
 .
-find_2020_recursive([], _)
+
+% We've reached the desired amount of answer numbers, and have reached the target - we have our answer:
+find_2020_recursive_n(_, 0, 0, Answer)
 ->
-    {notfound_2020}
+    Answer
 ;
-find_2020_recursive([A | ARest], Bs)
+
+% We've reached the desired amount of answer numbers, but still haven't reached the target:
+find_2020_recursive_n(_, TargetSum, 0, _) when TargetSum =/= 0
 ->
-    case find_2020_recursive(A, Bs) of
-        {is_2020, A, B} ->
-            {A, B}
-        ;{not_2020, _} ->
-            find_2020_recursive(ARest, Bs)
+    nope
+;
+
+% We've already overshot the target, don't go any further:
+find_2020_recursive_n(_, TargetSum, _, _) when TargetSum < 0
+->
+    nope
+;
+
+% We've run out of numbers in the set, but still haven't reached the target:
+find_2020_recursive_n([], _, _, _)
+->
+    nope
+;
+
+find_2020_recursive_n([HeadOfSet | RemainderOfSet], TargetSum, AnswerLength, AnswerSoFar)
+->
+    case find_2020_recursive_n(RemainderOfSet, TargetSum - HeadOfSet, AnswerLength - 1, [HeadOfSet | AnswerSoFar]) of
+        nope ->
+            % We've reached a dead end in this recursion with this number from the set,
+            % tail-recurse to the next number in the set:
+            find_2020_recursive_n(RemainderOfSet, TargetSum, AnswerLength, AnswerSoFar)
+        ;Answer ->
+            Answer
     end
-;
-find_2020_recursive(A, [B | _]) when A + B == 2020
-->
-    {is_2020, A, B}
-;
-find_2020_recursive(A, [_ | BRest])
-->
-    find_2020_recursive(A, BRest)
-;
-find_2020_recursive(A, [])
-->
-    {not_2020, A}
 .
+
+%% ------- %%
+%% Helpers %%
+%% ------- %%
 
 get_numbers()
 ->
@@ -54,29 +75,59 @@ get_numbers()
     [binary_to_integer(Line) || Line <- Lines, size(Line) > 0]
 .
 
-print_result(A, B)
+product(Ns)
 ->
-    io:format("~p + ~p = ~p\n", [A, B, A + B]),
-    io:format("~p x ~p = ~p\n", [A, B, A * B])
+    product(Ns, 1)
 .
 
-main(["recursive"])
+product([], Result)
+->
+    Result
+;
+product([N | Ns], Result)
+->
+    product(Ns, N * Result)
+.
+
+print_result(Ns)
+->
+    io:format("SUM(~p) = ~p\n", [Ns, lists:sum(Ns)]),
+    io:format("PRODUCT(~p) = ~p\n", [Ns, product(Ns)])
+.
+
+%% ---------- %%
+%% Entrypoint %%
+%% ---------- %%
+
+main(["listcomp", "2"])
 ->
     Numbers = get_numbers(),
-    {A, B} = find_2020_recursive(Numbers),
-    print_result(A, B)
+    {A, B} = find_2020_listcomp_2(Numbers),
+    print_result([A, B])
 ;
 
-main(["listcomp"])
+main(["listcomp", "3"])
 ->
     Numbers = get_numbers(),
-    {A, B} = find_2020_listcomp(Numbers),
-    print_result(A, B)
+    {A, B, C} = find_2020_listcomp_3(Numbers),
+    print_result([A, B, C])
+;
+
+main(["recursive", N, T])
+->
+    Numbers = get_numbers(),
+    Result = find_2020_recursive_n(Numbers, list_to_integer(T), list_to_integer(N)),
+    print_result(Result)
+;
+
+main(["recursive", N])
+->
+    main(["recursive", N, "2020"])
 ;
 
 main([])
 ->
-    main(["listcomp"])
+    main(["recursive", "3"])
 ;
 
 main(_)
