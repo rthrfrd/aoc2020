@@ -1,13 +1,19 @@
 -module(helper).
 
 -export([
+    get_input_path/1,
     load_input/1,
     load_input_lines/1
 ]).
 
+get_input_path(FileName)
+->
+    <<"../inputs/", FileName/binary>>
+.
+
 load_input(FileName)
 ->
-    FilePath = <<"../inputs/", FileName/binary>>,
+    FilePath = get_input_path(FileName),
     {ok, FileBinary} = file:read_file(FilePath),
     {ok, FileBinary}
 .
